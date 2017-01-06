@@ -1,12 +1,15 @@
 ﻿using System;
-using System.ComponentModel;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Reflection;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Shell;
+using EvilBaschdi.Core.Application;
 using EvilBaschdi.Core.Browsers;
 using EvilBaschdi.Core.Wpf;
 using MahApps.Metro.Controls;
@@ -24,18 +27,19 @@ namespace RenamePlayMemoriesImportFolders
         private readonly IAppSettings _appSettings;
         private string _initialDirectory;
         private int _overrideProtection;
-        private readonly BackgroundWorker _bw;
-        private string _result;
-        private int _executionCount;
 
         public MainWindow()
         {
             _appSettings = new AppSettings();
-            var coreSettings = new CoreSettings();
+
             InitializeComponent();
-            _bw = new BackgroundWorker();
-            _style = new MetroStyle(this, Accent, Dark, Light, coreSettings);
-            _style.Load();
+            var coreSettings = new CoreSettings(Properties.Settings.Default);
+            var themeManagerHelper = new ThemeManagerHelper();
+            _style = new MetroStyle(this, Accent, ThemeSwitch, coreSettings, themeManagerHelper);
+
+            _style.Load(true);
+            var linkerTime = Assembly.GetExecutingAssembly().GetLinkerTime();
+            LinkerTime.Content = linkerTime.ToString(CultureInfo.InvariantCulture);
             Load();
         }
 
@@ -62,28 +66,28 @@ namespace RenamePlayMemoriesImportFolders
             }
         }
 
-        private void RenameFoldersOnClick(object sender, RoutedEventArgs e)
+        private async void RenameFoldersOnClick(object sender, RoutedEventArgs e)
+        {
+            await RunRenameAsync();
+        }
+
+        private async Task RunRenameAsync()
         {
             TaskbarItemInfo.ProgressState = TaskbarItemProgressState.Indeterminate;
-            ConfigureRename();
-        }
-
-        private void ConfigureRename()
-        {
-            _executionCount++;
             Cursor = Cursors.Wait;
-            if (_executionCount == 1)
-            {
-                _bw.DoWork += (o, args) => Rename();
-                _bw.WorkerReportsProgress = true;
-                _bw.RunWorkerCompleted += BackgroundWorkerRunWorkerCompleted;
-            }
-            _bw.RunWorkerAsync();
+
+            var task = Task<string>.Factory.StartNew(Rename);
+            await task;
+
+            RenameFoldersContent.Text = task.Result;
+
+            TaskbarItemInfo.ProgressState = TaskbarItemProgressState.Normal;
+            Cursor = Cursors.Arrow;
         }
 
-        private void Rename()
+        private string Rename()
         {
-            var pmFolder = _initialDirectory + @"\";
+            var pmFolder = $@"{_initialDirectory}\";
             var paths = Directory.GetDirectories(pmFolder);
             var counter = 0;
 
@@ -103,17 +107,9 @@ namespace RenamePlayMemoriesImportFolders
                 ? "folders were"
                 : "folder was";
 
-            _result = counter != 0
+            return counter != 0
                 ? $"{counter} {pluralHelper} renamed.{Environment.NewLine}Open PlayMemories and reload the database."
                 : "Nothing has changed.";
-        }
-
-        private void BackgroundWorkerRunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
-        {
-            RenameFoldersContent.Text = _result;
-
-            TaskbarItemInfo.ProgressState = TaskbarItemProgressState.Normal;
-            Cursor = Cursors.Arrow;
         }
 
         private void InitialDirectoryOnLostFocus(object sender, RoutedEventArgs e)
@@ -214,13 +210,21 @@ namespace RenamePlayMemoriesImportFolders
             _style.SaveStyle();
         }
 
-        private void Theme(object sender, RoutedEventArgs e)
+        private void Theme(object sender, EventArgs e)
         {
             if (_overrideProtection == 0)
             {
                 return;
             }
-            _style.SetTheme(sender, e);
+            var routedEventArgs = e as RoutedEventArgs;
+            if (routedEventArgs != null)
+            {
+                _style.SetTheme(sender, routedEventArgs);
+            }
+            else
+            {
+                _style.SetTheme(sender);
+            }
         }
 
         private void AccentOnSelectionChanged(object sender, SelectionChangedEventArgs e)
