@@ -14,6 +14,7 @@ using EvilBaschdi.Core.Browsers;
 using EvilBaschdi.Core.Wpf;
 using MahApps.Metro.Controls;
 using RenamePlayMemoriesImportFolders.Core;
+using RenamePlayMemoriesImportFolders.Internal;
 
 namespace RenamePlayMemoriesImportFolders
 {
@@ -25,6 +26,7 @@ namespace RenamePlayMemoriesImportFolders
     {
         private readonly IMetroStyle _style;
         private readonly IAppSettings _appSettings;
+        private readonly IMoveDirectory _moveDirectory;
         private string _initialDirectory;
         private int _overrideProtection;
 
@@ -35,6 +37,7 @@ namespace RenamePlayMemoriesImportFolders
             InitializeComponent();
             var coreSettings = new CoreSettings(Properties.Settings.Default);
             var themeManagerHelper = new ThemeManagerHelper();
+            _moveDirectory = new MoveDirectory();
             _style = new MetroStyle(this, Accent, ThemeSwitch, coreSettings, themeManagerHelper);
 
             _style.Load(true);
@@ -99,7 +102,7 @@ namespace RenamePlayMemoriesImportFolders
                 var month = values[1];
                 var day = values[0];
                 var newName = $"{pmFolder}{year}-{month}-{day}";
-                MoveDirectory(path, newName);
+                _moveDirectory.RunFor(path, newName);
                 counter++;
             }
 
@@ -132,38 +135,6 @@ namespace RenamePlayMemoriesImportFolders
             Load();
         }
 
-        private void MoveDirectory(string source, string target)
-        {
-            if (!Directory.Exists(target))
-            {
-                Directory.Move(source, target);
-            }
-            else
-            {
-                var sourcePath = source.TrimEnd('\\', ' ');
-                var targetPath = target.TrimEnd('\\', ' ');
-                var files = Directory.EnumerateFiles(sourcePath, "*", SearchOption.AllDirectories).GroupBy(Path.GetDirectoryName);
-                foreach (var folder in files)
-                {
-                    var targetFolder = folder.Key.Replace(sourcePath, targetPath);
-                    Directory.CreateDirectory(targetFolder);
-                    foreach (var file in folder)
-                    {
-                        if (file != null)
-                        {
-                            var targetFile = Path.Combine(targetFolder, Path.GetFileName(file));
-                            if (File.Exists(targetFile))
-                            {
-                                File.Delete(targetFile);
-                            }
-                            File.Move(file, targetFile);
-                        }
-                    }
-                }
-                Directory.Delete(source, true);
-            }
-        }
-
         #region Flyout
 
         private void ToggleSettingsFlyoutClick(object sender, RoutedEventArgs e)
@@ -187,14 +158,7 @@ namespace RenamePlayMemoriesImportFolders
                 nonactiveFlyout.IsOpen = false;
             }
 
-            if (activeFlyout.IsOpen && stayOpen)
-            {
-                activeFlyout.IsOpen = true;
-            }
-            else
-            {
-                activeFlyout.IsOpen = !activeFlyout.IsOpen;
-            }
+            activeFlyout.IsOpen = activeFlyout.IsOpen && stayOpen || !activeFlyout.IsOpen;
         }
 
         #endregion Flyout
@@ -203,25 +167,15 @@ namespace RenamePlayMemoriesImportFolders
 
         private void SaveStyleClick(object sender, RoutedEventArgs e)
         {
-            if (_overrideProtection == 0)
+            if (_overrideProtection != 0)
             {
-                return;
+                _style.SaveStyle();
             }
-            _style.SaveStyle();
         }
 
         private void Theme(object sender, EventArgs e)
         {
-            if (_overrideProtection == 0)
-            {
-                return;
-            }
-            var routedEventArgs = e as RoutedEventArgs;
-            if (routedEventArgs != null)
-            {
-                _style.SetTheme(sender, routedEventArgs);
-            }
-            else
+            if (_overrideProtection != 0)
             {
                 _style.SetTheme(sender);
             }
@@ -229,11 +183,10 @@ namespace RenamePlayMemoriesImportFolders
 
         private void AccentOnSelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (_overrideProtection == 0)
+            if (_overrideProtection != 0)
             {
-                return;
+                _style.SetAccent(sender, e);
             }
-            _style.SetAccent(sender, e);
         }
 
         #endregion MetroStyle
