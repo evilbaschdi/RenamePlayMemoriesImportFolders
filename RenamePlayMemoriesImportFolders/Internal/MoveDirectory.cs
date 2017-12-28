@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using System.Linq;
 
 namespace RenamePlayMemoriesImportFolders.Internal
@@ -7,6 +8,14 @@ namespace RenamePlayMemoriesImportFolders.Internal
     {
         public void RunFor(string source, string target)
         {
+            if (source == null)
+            {
+                throw new ArgumentNullException(nameof(source));
+            }
+            if (target == null)
+            {
+                throw new ArgumentNullException(nameof(target));
+            }
             if (!Directory.Exists(target))
             {
                 Directory.Move(source, target);
