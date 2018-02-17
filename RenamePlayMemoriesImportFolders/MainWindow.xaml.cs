@@ -9,12 +9,14 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Shell;
-using EvilBaschdi.Core.Application;
-using EvilBaschdi.Core.Browsers;
-using EvilBaschdi.Core.Wpf;
+using EvilBaschdi.Core.Extensions;
+using EvilBaschdi.CoreExtended.AppHelpers;
+using EvilBaschdi.CoreExtended.Browsers;
+using EvilBaschdi.CoreExtended.Metro;
 using MahApps.Metro.Controls;
 using RenamePlayMemoriesImportFolders.Core;
 using RenamePlayMemoriesImportFolders.Internal;
+using RenamePlayMemoriesImportFolders.Properties;
 
 namespace RenamePlayMemoriesImportFolders
 {
@@ -24,23 +26,24 @@ namespace RenamePlayMemoriesImportFolders
     // ReSharper disable once RedundantExtendsListEntry
     public partial class MainWindow : MetroWindow
     {
-        private readonly IMetroStyle _style;
         private readonly IAppSettings _appSettings;
         private readonly IMoveDirectory _moveDirectory;
         private string _initialDirectory;
         private int _overrideProtection;
+        private readonly IApplicationStyle _applicationStyle;
 
+
+        /// <inheritdoc />
         public MainWindow()
         {
-            _appSettings = new AppSettings();
-
             InitializeComponent();
-            var coreSettings = new CoreSettings(Properties.Settings.Default);
-            var themeManagerHelper = new ThemeManagerHelper();
+            IAppSettingsBase appSettingsBase = new AppSettingsBase(Settings.Default);
+            IApplicationStyleSettings applicationStyleSettings = new ApplicationStyleSettings(appSettingsBase);
+            IThemeManagerHelper themeManagerHelper = new ThemeManagerHelper();
+            _applicationStyle = new ApplicationStyle(this, Accent, ThemeSwitch, applicationStyleSettings, themeManagerHelper);
+            _applicationStyle.Load(true);
+            _appSettings = new AppSettings(appSettingsBase);
             _moveDirectory = new MoveDirectory();
-            _style = new MetroStyle(this, Accent, ThemeSwitch, coreSettings, themeManagerHelper);
-
-            _style.Load(true);
             var linkerTime = Assembly.GetExecutingAssembly().GetLinkerTime();
             LinkerTime.Content = linkerTime.ToString(CultureInfo.InvariantCulture);
             Load();
@@ -169,7 +172,7 @@ namespace RenamePlayMemoriesImportFolders
         {
             if (_overrideProtection != 0)
             {
-                _style.SaveStyle();
+                _applicationStyle.SaveStyle();
             }
         }
 
@@ -177,7 +180,7 @@ namespace RenamePlayMemoriesImportFolders
         {
             if (_overrideProtection != 0)
             {
-                _style.SetTheme(sender);
+                _applicationStyle.SetTheme(sender);
             }
         }
 
@@ -185,7 +188,7 @@ namespace RenamePlayMemoriesImportFolders
         {
             if (_overrideProtection != 0)
             {
-                _style.SetAccent(sender, e);
+                _applicationStyle.SetAccent(sender, e);
             }
         }
 
