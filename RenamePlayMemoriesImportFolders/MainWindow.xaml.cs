@@ -1,18 +1,17 @@
 ﻿using System;
 using System.Diagnostics;
-using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Shell;
-using EvilBaschdi.Core.Extensions;
 using EvilBaschdi.CoreExtended.AppHelpers;
 using EvilBaschdi.CoreExtended.Browsers;
 using EvilBaschdi.CoreExtended.Metro;
+using EvilBaschdi.CoreExtended.Mvvm;
+using EvilBaschdi.CoreExtended.Mvvm.View;
+using EvilBaschdi.CoreExtended.Mvvm.ViewModel;
 using MahApps.Metro.Controls;
 using RenamePlayMemoriesImportFolders.Core;
 using RenamePlayMemoriesImportFolders.Internal;
@@ -28,10 +27,8 @@ namespace RenamePlayMemoriesImportFolders
     {
         private readonly IAppSettings _appSettings;
         private readonly IMoveDirectory _moveDirectory;
+        private readonly IThemeManagerHelper _themeManagerHelper;
         private string _initialDirectory;
-        private int _overrideProtection;
-        private readonly IApplicationStyle _applicationStyle;
-
 
         /// <inheritdoc />
         public MainWindow()
@@ -39,25 +36,21 @@ namespace RenamePlayMemoriesImportFolders
             InitializeComponent();
             IAppSettingsBase appSettingsBase = new AppSettingsBase(Settings.Default);
             IApplicationStyleSettings applicationStyleSettings = new ApplicationStyleSettings(appSettingsBase);
-            IThemeManagerHelper themeManagerHelper = new ThemeManagerHelper();
-            _applicationStyle = new ApplicationStyle(this, Accent, ThemeSwitch, applicationStyleSettings, themeManagerHelper);
-            _applicationStyle.Load(true);
+            _themeManagerHelper = new ThemeManagerHelper();
+            IApplicationStyle applicationStyle = new ApplicationStyle(_themeManagerHelper);
+            applicationStyle.Load(true);
             _appSettings = new AppSettings(appSettingsBase);
             _moveDirectory = new MoveDirectory();
-            var linkerTime = Assembly.GetExecutingAssembly().GetLinkerTime();
-            LinkerTime.Content = linkerTime.ToString(CultureInfo.InvariantCulture);
+
             Load();
         }
 
         private void Load()
         {
             RenameFolders.IsEnabled = !string.IsNullOrWhiteSpace(_appSettings.InitialDirectory) && Directory.Exists(_appSettings.InitialDirectory);
-
             _initialDirectory = _appSettings.InitialDirectory;
             InitialDirectory.Text = _initialDirectory;
-
             RenameFolders.MouseRightButtonDown += RenameFoldersOnMouseRightButtonDown;
-            _overrideProtection = 1;
         }
 
         private void RenameFoldersOnMouseRightButtonDown(object sender, MouseButtonEventArgs mouseButtonEventArgs)
@@ -138,60 +131,18 @@ namespace RenamePlayMemoriesImportFolders
             Load();
         }
 
-        #region Flyout
 
-        private void ToggleSettingsFlyoutClick(object sender, RoutedEventArgs e)
+        private void AboutWindowClick(object sender, RoutedEventArgs e)
         {
-            ToggleFlyout(0);
+            var assembly = typeof(MainWindow).Assembly;
+            IAboutWindowContent aboutWindowContent = new AboutWindowContent(assembly, $@"{AppDomain.CurrentDomain.BaseDirectory}\Resources\b.png");
+
+            var aboutWindow = new AboutWindow
+                              {
+                                  DataContext = new AboutViewModel(aboutWindowContent, _themeManagerHelper)
+                              };
+
+            aboutWindow.ShowDialog();
         }
-
-        private void ToggleFlyout(int index, bool stayOpen = false)
-        {
-            var activeFlyout = (Flyout) Flyouts.Items[index];
-            if (activeFlyout == null)
-            {
-                return;
-            }
-
-            foreach (
-                var nonactiveFlyout in
-                Flyouts.Items.Cast<Flyout>()
-                       .Where(nonactiveFlyout => nonactiveFlyout.IsOpen && nonactiveFlyout.Name != activeFlyout.Name))
-            {
-                nonactiveFlyout.IsOpen = false;
-            }
-
-            activeFlyout.IsOpen = activeFlyout.IsOpen && stayOpen || !activeFlyout.IsOpen;
-        }
-
-        #endregion Flyout
-
-        #region MetroStyle
-
-        private void SaveStyleClick(object sender, RoutedEventArgs e)
-        {
-            if (_overrideProtection != 0)
-            {
-                _applicationStyle.SaveStyle();
-            }
-        }
-
-        private void Theme(object sender, EventArgs e)
-        {
-            if (_overrideProtection != 0)
-            {
-                _applicationStyle.SetTheme(sender);
-            }
-        }
-
-        private void AccentOnSelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            if (_overrideProtection != 0)
-            {
-                _applicationStyle.SetAccent(sender, e);
-            }
-        }
-
-        #endregion MetroStyle
     }
 }
