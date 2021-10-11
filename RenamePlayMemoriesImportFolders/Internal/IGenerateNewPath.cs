@@ -2,7 +2,8 @@
 
 namespace RenamePlayMemoriesImportFolders.Internal
 {
-    public interface IMoveDirectory : IRunFor2<string, string>
+    /// <inheritdoc />
+    public interface IGenerateNewPath : IValueFor<string, string>
     {
     }
 }

@@ -1,18 +1,23 @@
 ﻿using System.Windows;
-using EvilBaschdi.CoreExtended.Metro;
+#if (!DEBUG)
+using ControlzEx.Theming;
+
+#endif
 
 namespace RenamePlayMemoriesImportFolders
 {
     /// <summary>
     ///     Interaction logic for App.xaml
     /// </summary>
+    // ReSharper disable once RedundantExtendsListEntry
     public partial class App : Application
     {
         /// <inheritdoc />
         protected override void OnStartup(StartupEventArgs e)
         {
-            var themeManagerHelper = new ThemeManagerHelper();
-            themeManagerHelper.RegisterSystemColorTheme();
+#if (!DEBUG)
+            ThemeManager.Current.SyncTheme(ThemeSyncMode.SyncAll);
+#endif
 
             base.OnStartup(e);
         }
