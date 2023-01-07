@@ -1,9 +1,8 @@
 ﻿using EvilBaschdi.Core;
 
-namespace RenamePlayMemoriesImportFolders.Internal
+namespace RenamePlayMemoriesImportFolders.Internal;
+
+/// <inheritdoc />
+public interface IGenerateNewPath : IValueFor<string, string>
 {
-    /// <inheritdoc />
-    public interface IGenerateNewPath : IValueFor<string, string>
-    {
-    }
 }

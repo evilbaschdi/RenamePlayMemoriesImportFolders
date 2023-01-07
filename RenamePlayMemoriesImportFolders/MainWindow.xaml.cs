@@ -1,145 +1,140 @@
-﻿using System;
-using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using System.IO;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Shell;
+using EvilBaschdi.About.Core;
+using EvilBaschdi.About.Core.Models;
+using EvilBaschdi.About.Wpf;
+using EvilBaschdi.Core;
+using EvilBaschdi.Core.AppHelpers;
 using EvilBaschdi.Core.Internal;
 using EvilBaschdi.CoreExtended;
-using EvilBaschdi.CoreExtended.AppHelpers;
 using EvilBaschdi.CoreExtended.Browsers;
-using EvilBaschdi.CoreExtended.Controls.About;
+using EvilBaschdi.Settings.ByMachineAndUser;
 using MahApps.Metro.Controls;
 using RenamePlayMemoriesImportFolders.Core;
 using RenamePlayMemoriesImportFolders.Internal;
-using RenamePlayMemoriesImportFolders.Properties;
 
-namespace RenamePlayMemoriesImportFolders
+namespace RenamePlayMemoriesImportFolders;
+
+/// <summary>
+///     Interaction logic for MainWindow.xaml
+/// </summary>
+// ReSharper disable once RedundantExtendsListEntry
+public partial class MainWindow : MetroWindow
 {
-    /// <summary>
-    ///     Interaction logic for MainWindow.xaml
-    /// </summary>
-    // ReSharper disable once RedundantExtendsListEntry
-    public partial class MainWindow : MetroWindow
+    private readonly IAppSettings _appSettings;
+    private readonly IGenerateNewPath _generateNewPath;
+    private readonly IMoveDirectory _moveDirectory;
+    private readonly IProcessByPath _processByPath;
+
+    /// <inheritdoc />
+    public MainWindow()
     {
-        private readonly IAppSettings _appSettings;
-        private readonly IGenerateNewPath _generateNewPath;
-        private readonly IMoveDirectory _moveDirectory;
-        private readonly IProcessByPath _processByPath;
-        private readonly IRoundCorners _roundCorners;
+        InitializeComponent();
+        IAppSettingsFromJsonFile appSettingsFromJsonFile = new AppSettingsFromJsonFile();
+        IAppSettingsFromJsonFileByMachineAndUser appSettingsFromJsonFileByMachineAndUser = new AppSettingsFromJsonFileByMachineAndUser();
+        IAppSettingByKey appSettingByKey = new AppSettingByKey(appSettingsFromJsonFile, appSettingsFromJsonFileByMachineAndUser);
+        IApplicationStyle applicationStyle = new ApplicationStyle(true);
+        applicationStyle.Run();
 
+        _appSettings = new AppSettings(appSettingByKey);
+        _moveDirectory = new MoveDirectory();
+        _processByPath = new ProcessByPath();
+        _generateNewPath = new GenerateNewPath(_appSettings);
+        Load();
+    }
 
-        /// <inheritdoc />
-        public MainWindow()
+    private void Load()
+    {
+        RenameFolders.SetCurrentValue(IsEnabledProperty, !string.IsNullOrWhiteSpace(_appSettings.InitialDirectory) && Directory.Exists(_appSettings.InitialDirectory));
+        InitialDirectory.SetCurrentValue(System.Windows.Controls.TextBox.TextProperty, _appSettings.InitialDirectory ?? string.Empty);
+        RenameFolders.MouseRightButtonDown += RenameFoldersOnMouseRightButtonDown;
+    }
+
+    private void RenameFoldersOnMouseRightButtonDown(object sender, MouseButtonEventArgs mouseButtonEventArgs)
+    {
+        if (Keyboard.IsKeyDown(Key.LeftShift) || Keyboard.IsKeyDown(Key.RightShift))
         {
-            InitializeComponent();
-            IAppSettingsBase appSettingsBase = new AppSettingsBase(Settings.Default);
-            _roundCorners = new RoundCorners();
-            IApplicationStyle style = new ApplicationStyle(_roundCorners, true);
-            style.Run();
-            _appSettings = new AppSettings(appSettingsBase);
-            _moveDirectory = new MoveDirectory();
-            _processByPath = new ProcessByPath();
-            _generateNewPath = new GenerateNewPath(_appSettings);
-            Load();
+            var path = $@"{Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86)}\Sony\PlayMemories Home\x64\PMBBrowser.exe";
+            _processByPath.RunFor(path);
+        }
+        else
+        {
+            _processByPath.RunFor(_appSettings.InitialDirectory);
+        }
+    }
+
+    private async void RenameFoldersOnClick(object sender, RoutedEventArgs e)
+    {
+        await RunRenameAsync();
+    }
+
+    private async Task RunRenameAsync()
+    {
+        TaskbarItemInfo.SetCurrentValue(TaskbarItemInfo.ProgressStateProperty, TaskbarItemProgressState.Indeterminate);
+        SetCurrentValue(CursorProperty, Cursors.Wait);
+
+        var task = Task<string>.Factory.StartNew(Rename);
+        await task;
+
+        RenameFoldersContent.SetCurrentValue(System.Windows.Controls.TextBlock.TextProperty, task.Result);
+
+        TaskbarItemInfo.SetCurrentValue(TaskbarItemInfo.ProgressStateProperty, TaskbarItemProgressState.Normal);
+        SetCurrentValue(CursorProperty, Cursors.Arrow);
+    }
+
+    private string Rename()
+    {
+        var pmFolder = $@"{_appSettings.InitialDirectory}\";
+        var paths = Directory.GetDirectories(pmFolder);
+        var counter = 0;
+
+        foreach (var path in paths.Where(item => item.Split('\\').Last().Contains('.')))
+        {
+            var newName = _generateNewPath.ValueFor(path);
+            _moveDirectory.RunFor(path, newName);
+            counter++;
         }
 
-        private void Load()
+        var pluralHelper = counter != 1
+            ? "folders were"
+            : "folder was";
+
+        return counter != 0
+            ? $"{counter} {pluralHelper} renamed.{Environment.NewLine}Open PlayMemories and reload the database."
+            : "Nothing has changed.";
+    }
+
+    private void InitialDirectoryOnLostFocus(object sender, RoutedEventArgs e)
+    {
+        if (!Directory.Exists(InitialDirectory.Text))
         {
-            RenameFolders.IsEnabled = !string.IsNullOrWhiteSpace(_appSettings.InitialDirectory) && Directory.Exists(_appSettings.InitialDirectory);
-            InitialDirectory.Text = _appSettings.InitialDirectory ?? string.Empty;
-            RenameFolders.MouseRightButtonDown += RenameFoldersOnMouseRightButtonDown;
+            return;
         }
 
-        private void RenameFoldersOnMouseRightButtonDown(object sender, MouseButtonEventArgs mouseButtonEventArgs)
-        {
-            if (Keyboard.IsKeyDown(Key.LeftShift) || Keyboard.IsKeyDown(Key.RightShift))
-            {
-                var path = $@"{Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86)}\Sony\PlayMemories Home\x64\PMBBrowser.exe";
-                _processByPath.RunFor(path);
-            }
-            else
-            {
-                _processByPath.RunFor(_appSettings.InitialDirectory);
-            }
-        }
+        _appSettings.InitialDirectory = InitialDirectory.Text;
+        Load();
+    }
 
-        private async void RenameFoldersOnClick(object sender, RoutedEventArgs e)
-        {
-            await RunRenameAsync();
-        }
+    private void BrowseClick(object sender, RoutedEventArgs e)
+    {
+        var browser = new ExplorerFolderBrowser
+                      {
+                          SelectedPath = _appSettings.InitialDirectory
+                      };
+        browser.ShowDialog();
+        _appSettings.InitialDirectory = browser.SelectedPath;
+        Load();
+    }
 
-        private async Task RunRenameAsync()
-        {
-            TaskbarItemInfo.ProgressState = TaskbarItemProgressState.Indeterminate;
-            Cursor = Cursors.Wait;
+    private void AboutWindowClick(object sender, RoutedEventArgs e)
+    {
+        ICurrentAssembly currentAssembly = new CurrentAssembly();
+        IAboutContent aboutContent = new AboutContent(currentAssembly);
+        IAboutModel aboutModel = new AboutViewModel(aboutContent);
+        var aboutWindow = new AboutWindow(aboutModel);
 
-            var task = Task<string>.Factory.StartNew(Rename);
-            await task;
-
-            RenameFoldersContent.Text = task.Result;
-
-            TaskbarItemInfo.ProgressState = TaskbarItemProgressState.Normal;
-            Cursor = Cursors.Arrow;
-        }
-
-        private string Rename()
-        {
-            var pmFolder = $@"{_appSettings.InitialDirectory}\";
-            var paths = Directory.GetDirectories(pmFolder);
-            var counter = 0;
-
-            foreach (var path in paths.Where(item => item.Split('\\').Last().Contains(".")))
-            {
-                var newName = _generateNewPath.ValueFor(path);
-                _moveDirectory.RunFor(path, newName);
-                counter++;
-            }
-
-            var pluralHelper = counter != 1
-                ? "folders were"
-                : "folder was";
-
-            return counter != 0
-                ? $"{counter} {pluralHelper} renamed.{Environment.NewLine}Open PlayMemories and reload the database."
-                : "Nothing has changed.";
-        }
-
-        private void InitialDirectoryOnLostFocus(object sender, RoutedEventArgs e)
-        {
-            if (!Directory.Exists(InitialDirectory.Text))
-            {
-                return;
-            }
-
-            _appSettings.InitialDirectory = InitialDirectory.Text;
-            Load();
-        }
-
-        private void BrowseClick(object sender, RoutedEventArgs e)
-        {
-            var browser = new ExplorerFolderBrowser
-                          {
-                              SelectedPath = _appSettings.InitialDirectory
-                          };
-            browser.ShowDialog();
-            _appSettings.InitialDirectory = browser.SelectedPath;
-            Load();
-        }
-
-
-        private void AboutWindowClick(object sender, RoutedEventArgs e)
-        {
-            var assembly = typeof(MainWindow).Assembly;
-            IAboutContent aboutWindowContent = new AboutContent(assembly, $@"{AppDomain.CurrentDomain.BaseDirectory}\Resources\b.png");
-
-            var aboutWindow = new AboutWindow
-                              {
-                                  DataContext = new AboutViewModel(aboutWindowContent, _roundCorners)
-                              };
-
-            aboutWindow.ShowDialog();
-        }
+        aboutWindow.ShowDialog();
     }
 }

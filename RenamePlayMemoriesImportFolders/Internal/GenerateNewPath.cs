@@ -1,5 +1,4 @@
-﻿using System;
-using JetBrains.Annotations;
+﻿using JetBrains.Annotations;
 using RenamePlayMemoriesImportFolders.Core;
 #if (!DEBUG)
 using System.IO;

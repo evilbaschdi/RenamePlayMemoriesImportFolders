@@ -1,13 +1,10 @@
-﻿namespace RenamePlayMemoriesImportFolders.Core
+﻿namespace RenamePlayMemoriesImportFolders.Core;
+
+/// <summary>
+/// </summary>
+public interface IAppSettings
 {
     /// <summary>
-    /// 
     /// </summary>
-    public interface IAppSettings
-    {
-        /// <summary>
-        /// 
-        /// </summary>
-        string InitialDirectory { get; set; }
-    }
+    string InitialDirectory { get; set; }
 }

@@ -1,28 +1,28 @@
-﻿using System;
-using System.IO;
-using EvilBaschdi.CoreExtended.AppHelpers;
+﻿using EvilBaschdi.Settings.ByMachineAndUser;
+using JetBrains.Annotations;
 
-namespace RenamePlayMemoriesImportFolders.Core
+namespace RenamePlayMemoriesImportFolders.Core;
+
+/// <inheritdoc />
+public class AppSettings : IAppSettings
 {
-    /// <inheritdoc />
-    public class AppSettings : IAppSettings
+    private const string Key = "InitialDirectory";
+    private readonly IAppSettingByKey _appSettingByKey;
+
+    /// <summary>
+    ///     Constructor
+    /// </summary>
+    /// <param name="appSettingByKey"></param>
+    /// <exception cref="ArgumentNullException"></exception>
+    public AppSettings([NotNull] IAppSettingByKey appSettingByKey)
     {
-        private readonly IAppSettingsBase _appSettingsBase;
+        _appSettingByKey = appSettingByKey ?? throw new ArgumentNullException(nameof(appSettingByKey));
+    }
 
-        /// <summary>
-        ///     Constructor
-        /// </summary>
-        /// <param name="appSettingsBase"></param>
-        public AppSettings(IAppSettingsBase appSettingsBase)
-        {
-            _appSettingsBase = appSettingsBase ?? throw new ArgumentNullException(nameof(appSettingsBase));
-        }
-
-        /// <inheritdoc />
-        public string InitialDirectory
-        {
-            get => _appSettingsBase.Get("InitialDirectory", Path.GetTempPath());
-            set => _appSettingsBase.Set("InitialDirectory", value);
-        }
+    /// <inheritdoc />
+    public string InitialDirectory
+    {
+        get => _appSettingByKey.ValueFor(Key);
+        set => _appSettingByKey.RunFor(Key, value);
     }
 }
