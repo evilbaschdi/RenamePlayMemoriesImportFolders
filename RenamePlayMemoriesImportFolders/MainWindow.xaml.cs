@@ -8,12 +8,12 @@ using EvilBaschdi.About.Wpf;
 using EvilBaschdi.Core;
 using EvilBaschdi.Core.AppHelpers;
 using EvilBaschdi.Core.Internal;
-using EvilBaschdi.CoreExtended;
-using EvilBaschdi.CoreExtended.Browsers;
+using EvilBaschdi.Core.Wpf;
+using EvilBaschdi.Core.Wpf.Browsers;
 using EvilBaschdi.Settings.ByMachineAndUser;
 using MahApps.Metro.Controls;
-using RenamePlayMemoriesImportFolders.Core;
 using RenamePlayMemoriesImportFolders.Internal;
+using RenamePlayMemoriesImportFolders.Settings;
 
 namespace RenamePlayMemoriesImportFolders;
 
@@ -23,10 +23,11 @@ namespace RenamePlayMemoriesImportFolders;
 // ReSharper disable once RedundantExtendsListEntry
 public partial class MainWindow : MetroWindow
 {
-    private readonly IAppSettings _appSettings;
+    private readonly IInitialDirectoryFromSettings _initialDirectoryFromSettings;
     private readonly IGenerateNewPath _generateNewPath;
     private readonly IMoveDirectory _moveDirectory;
     private readonly IProcessByPath _processByPath;
+    private readonly string _initialDirectory;
 
     /// <inheritdoc />
     public MainWindow()
@@ -38,17 +39,19 @@ public partial class MainWindow : MetroWindow
         IApplicationStyle applicationStyle = new ApplicationStyle(true);
         applicationStyle.Run();
 
-        _appSettings = new AppSettings(appSettingByKey);
+        _initialDirectoryFromSettings = new InitialDirectoryFromSettings(appSettingByKey);
         _moveDirectory = new MoveDirectory();
         _processByPath = new ProcessByPath();
-        _generateNewPath = new GenerateNewPath(_appSettings);
+        _generateNewPath = new GenerateNewPath(_initialDirectoryFromSettings);
+
+        _initialDirectory = _initialDirectoryFromSettings.Value;
         Load();
     }
 
     private void Load()
     {
-        RenameFolders.SetCurrentValue(IsEnabledProperty, !string.IsNullOrWhiteSpace(_appSettings.InitialDirectory) && Directory.Exists(_appSettings.InitialDirectory));
-        InitialDirectory.SetCurrentValue(System.Windows.Controls.TextBox.TextProperty, _appSettings.InitialDirectory ?? string.Empty);
+        RenameFolders.SetCurrentValue(IsEnabledProperty, !string.IsNullOrWhiteSpace(_initialDirectory) && Directory.Exists(_initialDirectory));
+        InitialDirectory.SetCurrentValue(System.Windows.Controls.TextBox.TextProperty, _initialDirectory ?? string.Empty);
         RenameFolders.MouseRightButtonDown += RenameFoldersOnMouseRightButtonDown;
     }
 
@@ -61,7 +64,7 @@ public partial class MainWindow : MetroWindow
         }
         else
         {
-            _processByPath.RunFor(_appSettings.InitialDirectory);
+            _processByPath.RunFor(_initialDirectory);
         }
     }
 
@@ -86,7 +89,7 @@ public partial class MainWindow : MetroWindow
 
     private string Rename()
     {
-        var pmFolder = $@"{_appSettings.InitialDirectory}\";
+        var pmFolder = $@"{_initialDirectory}\";
         var paths = Directory.GetDirectories(pmFolder);
         var counter = 0;
 
@@ -113,7 +116,7 @@ public partial class MainWindow : MetroWindow
             return;
         }
 
-        _appSettings.InitialDirectory = InitialDirectory.Text;
+        _initialDirectoryFromSettings.Value = InitialDirectory.Text;
         Load();
     }
 
@@ -121,10 +124,10 @@ public partial class MainWindow : MetroWindow
     {
         var browser = new ExplorerFolderBrowser
                       {
-                          SelectedPath = _appSettings.InitialDirectory
+                          SelectedPath = _initialDirectory
                       };
         browser.ShowDialog();
-        _appSettings.InitialDirectory = browser.SelectedPath;
+        _initialDirectoryFromSettings.Value = browser.SelectedPath;
         Load();
     }
 
@@ -132,8 +135,9 @@ public partial class MainWindow : MetroWindow
     {
         ICurrentAssembly currentAssembly = new CurrentAssembly();
         IAboutContent aboutContent = new AboutContent(currentAssembly);
-        IAboutModel aboutModel = new AboutViewModel(aboutContent);
-        var aboutWindow = new AboutWindow(aboutModel);
+        IAboutViewModel aboutModel = new AboutViewModel(aboutContent);
+        IApplyMicaBrush applyMicaBrush = new ApplyMicaBrush();
+        var aboutWindow = new AboutWindow(aboutModel, applyMicaBrush);
 
         aboutWindow.ShowDialog();
     }

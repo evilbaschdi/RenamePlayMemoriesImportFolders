@@ -1,5 +1,5 @@
 ﻿using JetBrains.Annotations;
-using RenamePlayMemoriesImportFolders.Core;
+using RenamePlayMemoriesImportFolders.Settings;
 #if (!DEBUG)
 using System.IO;
 #endif
@@ -9,15 +9,18 @@ namespace RenamePlayMemoriesImportFolders.Internal
     /// <inheritdoc />
     public class GenerateNewPath : IGenerateNewPath
     {
-        private readonly IAppSettings _appSettings;
+        private readonly IInitialDirectoryFromSettings _initialDirectoryFromSettings;
 
         /// <summary>
         ///     Constructor
         /// </summary>
-        /// <param name="appSettings"></param>
-        public GenerateNewPath([NotNull] IAppSettings appSettings)
+        /// <param name="initialDirectoryFromSettings"></param>
+        public GenerateNewPath(IInitialDirectoryFromSettings initialDirectoryFromSettings)
         {
-            _appSettings = appSettings ?? throw new ArgumentNullException(nameof(appSettings));
+            if (initialDirectoryFromSettings != null)
+            {
+                _initialDirectoryFromSettings = initialDirectoryFromSettings;
+            }
         }
 
         /// <summary>
@@ -32,7 +35,7 @@ namespace RenamePlayMemoriesImportFolders.Internal
                 throw new ArgumentNullException(nameof(path));
             }
 
-            var pmFolder = $@"{_appSettings.InitialDirectory}\";
+            var pmFolder = $@"{_initialDirectoryFromSettings.Value}\";
             var oldName = path.Replace(pmFolder, "").Replace(@"\", "");
             var values = oldName.Split('.');
             var year = values[2];

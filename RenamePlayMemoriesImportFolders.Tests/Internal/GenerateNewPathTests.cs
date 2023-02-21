@@ -1,7 +1,7 @@
 ﻿using AutoFixture.Xunit2;
 using NSubstitute;
-using RenamePlayMemoriesImportFolders.Core;
 using RenamePlayMemoriesImportFolders.Internal;
+using RenamePlayMemoriesImportFolders.Settings;
 
 namespace RenamePlayMemoriesImportFolders.Tests.Internal;
 
@@ -27,12 +27,12 @@ public class GenerateNewPathTests
 
     [Theory, NSubstituteOmitAutoPropertiesTrueAutoData]
     public void ValueFor_ForProvidedPath_ReturnsNewPath(
-        [Frozen] IAppSettings appSettings,
+        [Frozen] IInitialDirectoryFromSettings initialDirectoryFromSettings,
         GenerateNewPath sut)
     {
         // Arrange
         var initDirectory = "X:\\Temp\\PM";
-        appSettings.InitialDirectory.Returns(initDirectory);
+        initialDirectoryFromSettings.Value.Returns(initDirectory);
 
         // Act
         var result = sut.ValueFor("20.10.2099");
