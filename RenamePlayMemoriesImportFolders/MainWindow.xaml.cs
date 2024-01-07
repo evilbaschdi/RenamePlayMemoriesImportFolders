@@ -36,8 +36,10 @@ public partial class MainWindow : MetroWindow
         IAppSettingsFromJsonFile appSettingsFromJsonFile = new AppSettingsFromJsonFile();
         IAppSettingsFromJsonFileByMachineAndUser appSettingsFromJsonFileByMachineAndUser = new AppSettingsFromJsonFileByMachineAndUser();
         IAppSettingByKey appSettingByKey = new AppSettingByKey(appSettingsFromJsonFile, appSettingsFromJsonFileByMachineAndUser);
-        IApplicationStyle applicationStyle = new ApplicationStyle(true);
+        IApplicationStyle applicationStyle = new ApplicationStyle();
+        IApplicationLayout applicationLayout = new ApplicationLayout();
         applicationStyle.Run();
+        applicationLayout.RunFor((true, false));
 
         _initialDirectoryFromSettings = new InitialDirectoryFromSettings(appSettingByKey);
         _moveDirectory = new MoveDirectory();
@@ -137,7 +139,8 @@ public partial class MainWindow : MetroWindow
         IAboutContent aboutContent = new AboutContent(currentAssembly);
         IAboutViewModel aboutModel = new AboutViewModel(aboutContent);
         IApplyMicaBrush applyMicaBrush = new ApplyMicaBrush();
-        var aboutWindow = new AboutWindow(aboutModel, applyMicaBrush);
+        IApplicationLayout applicationLayout = new ApplicationLayout();
+        var aboutWindow = new AboutWindow(aboutModel, applicationLayout, applyMicaBrush);
 
         aboutWindow.ShowDialog();
     }
