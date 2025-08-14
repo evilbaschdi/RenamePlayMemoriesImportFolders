@@ -1,5 +1,4 @@
-﻿using AutoFixture.Xunit2;
-using NSubstitute;
+﻿using NSubstitute;
 using RenamePlayMemoriesImportFolders.Internal;
 using RenamePlayMemoriesImportFolders.Settings;
 

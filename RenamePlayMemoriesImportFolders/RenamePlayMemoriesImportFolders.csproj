@@ -4,7 +4,7 @@
 	<PropertyGroup>
 		<OutputType>WinExe</OutputType>
 		<AppDesignerFolder>Properties</AppDesignerFolder>
-		<TargetFramework>net8.0-windows</TargetFramework>
+		<TargetFramework>net9.0-windows</TargetFramework>
 		<UseWPF>true</UseWPF>
 		<RootNamespace>RenamePlayMemoriesImportFolders</RootNamespace>
 		<AssemblyName>RenamePlayMemoriesImportFolders</AssemblyName>
@@ -16,23 +16,24 @@
 		<RepositoryUrl>https://github.com/evilbaschdi/RenamePlayMemoriesImportFolders</RepositoryUrl>
 		<PackageIconUrl>https://github.com/evilbaschdi/RenamePlayMemoriesImportFolders/blob/master/RenamePlayMemoriesImportFolders/Resources/b.ico</PackageIconUrl>
 		<PublishSingleFile>true</PublishSingleFile>
-		<Version>$([System.DateTime]::UtcNow.ToString(yyyy.M.d.Hmm))</Version>
+		<Version>$([System.DateTime]::UtcNow.ToString(yyyy.M.d.H))</Version>
 		<Copyright>Copyright © 2016 - $([System.DateTime]::UtcNow.ToString(yyyy)) evilbaschdi</Copyright>
 		<LangVersion>preview</LangVersion>
 		<!-- ReSharper disable once UnknownProperty -->
-		<DocumentationFile>bin\$(Configuration)\$(TargetFramework)\$(AssemblyName).xml</DocumentationFile>
+		<DocumentationFile>bin\$(Configuration)\$(TargetFramework)\$(MSBuildProjectName).xml</DocumentationFile>
 		<EnableNETAnalyzers>true</EnableNETAnalyzers>
 		<ImplicitUsings>enable</ImplicitUsings>
 	</PropertyGroup>
 
 	<ItemGroup>
+		<PackageReference Include="EvilBaschdi.Core" />
 		<PackageReference Include="MahApps.Metro.IconPacks.Material" />
 		<PackageReference Include="EvilBaschdi.Core.Wpf" />
 		<PackageReference Include="EvilBaschdi.About.Wpf" />
-		<PackageReference Include="EvilBaschdi.Settings" />
+		<PackageReference Include="EvilBaschdi.Core.Settings" />
 		<PackageReference Include="WpfAnalyzers">
 			<PrivateAssets>all</PrivateAssets>
-			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
 		</PackageReference>
 	</ItemGroup>
 
@@ -42,17 +43,6 @@
 		<Content Include="about.png">
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</Content>
-		<Content Include="RenamePlayMemoriesImportFolders.VisualElementsManifest.xml">
-			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
-		</Content>
-	</ItemGroup>
-
-	<ItemGroup>
-		<Compile Update="Properties\Settings.Designer.cs">
-			<DesignTimeSharedInput>True</DesignTimeSharedInput>
-			<AutoGen>True</AutoGen>
-			<DependentUpon>Settings.settings</DependentUpon>
-		</Compile>
 	</ItemGroup>
 
 	<ItemGroup>
