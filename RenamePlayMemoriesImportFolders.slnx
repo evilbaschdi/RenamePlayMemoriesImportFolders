@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="RenamePlayMemoriesImportFolders.Tests/RenamePlayMemoriesImportFolders.Tests.csproj" />
+  <Project Path="RenamePlayMemoriesImportFolders/RenamePlayMemoriesImportFolders.csproj" />
+</Solution>
